@@ -20,14 +20,79 @@
     --success: #059669;
     --success-bg: #ecfdf5;
     --success-border: #a7f3d0;
+    --success-text: #064e3b;
     --warning: #d97706;
     --warning-bg: #fffbeb;
     --warning-border: #fcd34d;
+    --warning-text: #92400e;
     --danger: #dc2626;
     --danger-bg: #fef2f2;
     --danger-border: #fecaca;
+    --danger-text: #7f1d1d;
+    --button-bg: #1a1f2e;
+    --button-bg-hover: #2d3441;
+    --button-fg: #ffffff;
+    --overlay: rgba(15, 18, 27, 0.55);
     --mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
     --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  html[data-theme="dark"] {
+    --bg: #0f1217;
+    --surface: #181c24;
+    --border: #2a303b;
+    --border-strong: #3a4150;
+    --text: #e6e8ec;
+    --text-secondary: #9ba3b3;
+    --text-tertiary: #6b7385;
+    --accent: #60a5fa;
+    --accent-hover: #93c5fd;
+    --success: #34d399;
+    --success-bg: #052e22;
+    --success-border: #065f46;
+    --success-text: #a7f3d0;
+    --warning: #fbbf24;
+    --warning-bg: #2a1f08;
+    --warning-border: #78350f;
+    --warning-text: #fcd34d;
+    --danger: #f87171;
+    --danger-bg: #2a0f10;
+    --danger-border: #7f1d1d;
+    --danger-text: #fecaca;
+    --button-bg: #e6e8ec;
+    --button-bg-hover: #ffffff;
+    --button-fg: #0f1217;
+    --overlay: rgba(0, 0, 0, 0.7);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    html[data-theme="system"] {
+      --bg: #0f1217;
+      --surface: #181c24;
+      --border: #2a303b;
+      --border-strong: #3a4150;
+      --text: #e6e8ec;
+      --text-secondary: #9ba3b3;
+      --text-tertiary: #6b7385;
+      --accent: #60a5fa;
+      --accent-hover: #93c5fd;
+      --success: #34d399;
+      --success-bg: #052e22;
+      --success-border: #065f46;
+      --success-text: #a7f3d0;
+      --warning: #fbbf24;
+      --warning-bg: #2a1f08;
+      --warning-border: #78350f;
+      --warning-text: #fcd34d;
+      --danger: #f87171;
+      --danger-bg: #2a0f10;
+      --danger-border: #7f1d1d;
+      --danger-text: #fecaca;
+      --button-bg: #e6e8ec;
+      --button-bg-hover: #ffffff;
+      --button-fg: #0f1217;
+      --overlay: rgba(0, 0, 0, 0.7);
+    }
   }
 
   html, body {
@@ -70,6 +135,57 @@
     color: var(--text-tertiary);
     text-transform: uppercase;
     letter-spacing: 0.08em;
+  }
+
+  .header-subtitle {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  /* ── Theme switcher ── */
+  .theme-switch {
+    display: inline-flex;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px;
+    gap: 0;
+  }
+
+  .theme-switch button {
+    background: transparent;
+    color: var(--text-tertiary);
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .theme-switch button:hover:not(:disabled) {
+    background: transparent;
+    color: var(--text-secondary);
+    border: none;
+  }
+
+  .theme-switch button.active {
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .theme-switch button svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
 
   /* ── Picker card ── */
@@ -192,9 +308,9 @@
   }
 
   button {
-    background: var(--text);
-    color: var(--surface);
-    border: 1px solid var(--text);
+    background: var(--button-bg);
+    color: var(--button-fg);
+    border: 1px solid var(--button-bg);
     border-radius: 6px;
     padding: 10px 20px;
     font-family: var(--sans);
@@ -205,8 +321,8 @@
   }
 
   button:hover:not(:disabled) {
-    background: #2d3441;
-    border-color: #2d3441;
+    background: var(--button-bg-hover);
+    border-color: var(--button-bg-hover);
   }
 
   button:active:not(:disabled) { transform: translateY(1px); }
@@ -231,7 +347,7 @@
   .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(15, 18, 27, 0.55);
+    background: var(--overlay);
     display: none;
     align-items: center;
     justify-content: center;
@@ -339,7 +455,7 @@
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #92400e;
+    color: var(--warning-text);
   }
 
   .fix-suggestion-value {
@@ -361,7 +477,7 @@
     border-left: 3px solid var(--danger);
     border-radius: 6px;
     padding: 12px 14px;
-    color: #7f1d1d;
+    color: var(--danger-text);
     font-size: 13px;
     line-height: 1.5;
     margin-bottom: 18px;
@@ -379,7 +495,8 @@
 
   @media (max-width: 640px) {
     body { padding: 20px 16px 48px; }
-    header { flex-direction: column; align-items: flex-start; gap: 4px; }
+    header { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .header-right { width: 100%; justify-content: space-between; }
     .picker-row { flex-direction: column; align-items: flex-start; }
     .modal-actions { flex-direction: column-reverse; }
     .modal-actions button { width: 100%; }
@@ -389,8 +506,32 @@
 <body>
   <div class="container">
     <header>
-      <h1>DASH MPD Health Check</h1>
-      <span class="header-meta">Phantom segment detector</span>
+      <div>
+        <h1>DASH MPD Health Check</h1>
+        <div class="header-subtitle">Phantom segment detector</div>
+      </div>
+      <div class="header-right">
+        <div class="theme-switch" role="group" aria-label="Theme">
+          <button type="button" data-theme="light" title="Light theme" aria-label="Light theme">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="4"/>
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+            </svg>
+          </button>
+          <button type="button" data-theme="system" title="System theme" aria-label="System theme">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+          </button>
+          <button type="button" data-theme="dark" title="Dark theme" aria-label="Dark theme">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
     </header>
 
     <div class="card">
@@ -426,6 +567,33 @@
   </div>
 
 <script>
+  // ────────────────────────────────────────────────────────────────────
+  // Theme switcher — light / dark / system, persisted to localStorage
+  // ────────────────────────────────────────────────────────────────────
+  (function setupTheme(){
+    const STORAGE_KEY = 'mpd-health-check-theme';
+    const validThemes = ['light', 'dark', 'system'];
+    const stored = localStorage.getItem(STORAGE_KEY);
+    const initial = validThemes.includes(stored) ? stored : 'system';
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      document.querySelectorAll('.theme-switch button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.theme === theme);
+      });
+    }
+
+    applyTheme(initial);
+
+    document.querySelectorAll('.theme-switch button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const theme = btn.dataset.theme;
+        localStorage.setItem(STORAGE_KEY, theme);
+        applyTheme(theme);
+      });
+    });
+  })();
+
   // ────────────────────────────────────────────────────────────────────
   // State
   // ────────────────────────────────────────────────────────────────────
@@ -594,8 +762,8 @@
     showModal(`
       <div class="result-icon-wrap">
         <svg viewBox="0 0 64 64" width="56" height="56" aria-hidden="true">
-          <circle cx="32" cy="32" r="28" fill="#ecfdf5" stroke="#a7f3d0" stroke-width="2"/>
-          <path d="M20 33 L28 41 L44 24" fill="none" stroke="#059669" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="32" cy="32" r="28" fill="var(--success-bg)" stroke="var(--success-border)" stroke-width="2"/>
+          <path d="M20 33 L28 41 L44 24" fill="none" stroke="var(--success)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
       <div class="result-title good">All good</div>
@@ -611,9 +779,9 @@
     showModal(`
       <div class="result-icon-wrap">
         <svg viewBox="0 0 64 64" width="56" height="56" aria-hidden="true">
-          <circle cx="32" cy="32" r="28" fill="#fef2f2" stroke="#fecaca" stroke-width="2"/>
-          <line x1="32" y1="22" x2="32" y2="36" stroke="#dc2626" stroke-width="4" stroke-linecap="round"/>
-          <circle cx="32" cy="44" r="2.5" fill="#dc2626"/>
+          <circle cx="32" cy="32" r="28" fill="var(--danger-bg)" stroke="var(--danger-border)" stroke-width="2"/>
+          <line x1="32" y1="22" x2="32" y2="36" stroke="var(--danger)" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="32" cy="44" r="2.5" fill="var(--danger)"/>
         </svg>
       </div>
       <div class="result-title bad">Phantom segment detected</div>
@@ -647,9 +815,9 @@
     showModal(`
       <div class="result-icon-wrap">
         <svg viewBox="0 0 64 64" width="56" height="56" aria-hidden="true">
-          <circle cx="32" cy="32" r="28" fill="#fef2f2" stroke="#fecaca" stroke-width="2"/>
-          <line x1="24" y1="24" x2="40" y2="40" stroke="#dc2626" stroke-width="4" stroke-linecap="round"/>
-          <line x1="40" y1="24" x2="24" y2="40" stroke="#dc2626" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="32" cy="32" r="28" fill="var(--danger-bg)" stroke="var(--danger-border)" stroke-width="2"/>
+          <line x1="24" y1="24" x2="40" y2="40" stroke="var(--danger)" stroke-width="4" stroke-linecap="round"/>
+          <line x1="40" y1="24" x2="24" y2="40" stroke="var(--danger)" stroke-width="4" stroke-linecap="round"/>
         </svg>
       </div>
       <div class="result-title bad">Couldn't check</div>
