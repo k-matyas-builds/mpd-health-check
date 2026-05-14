@@ -1,788 +1,759 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>DASH MPD Health Check</title>
 <style>
-    /* ── Base ── */
-    *, *::before, *::after { box-sizing: border-box; }
+  *, *::before, *::after { box-sizing: border-box; }
 
-    body {
-        font-family: Arial, sans-serif;
-        max-width: 620px;
-        margin: 0 auto;
-        padding: 28px 20px 48px;
-        background: #f0f0f8;
-        color: #02095D;
-    }
+  :root {
+    --bg: #f7f8fa;
+    --surface: #ffffff;
+    --border: #e4e7eb;
+    --border-strong: #cdd2d9;
+    --text: #1a1f2e;
+    --text-secondary: #5a6478;
+    --text-tertiary: #8b94a6;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --success: #059669;
+    --success-bg: #ecfdf5;
+    --success-border: #a7f3d0;
+    --warning: #d97706;
+    --warning-bg: #fffbeb;
+    --warning-border: #fcd34d;
+    --danger: #dc2626;
+    --danger-bg: #fef2f2;
+    --danger-border: #fecaca;
+    --mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
 
-    /* ── The one card ── */
-    .app-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 28px;
-        padding: 36px 36px 32px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        box-shadow:
-            0 20px 60px rgba(102, 126, 234, 0.45),
-            0 6px 20px rgba(0, 0, 0, 0.12);
-        position: relative;
-        overflow: hidden;
-        animation: floatIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-    }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-size: 14px;
+    line-height: 1.5;
+  }
 
-    @keyframes floatIn {
-        from { opacity: 0; transform: translateY(20px) scale(0.98); }
-        to   { opacity: 1; transform: translateY(0) scale(1); }
-    }
+  body { min-height: 100vh; padding: 32px 24px 64px; }
 
-    /* Decorative circles */
-    .app-card::before {
-        content: '';
-        position: absolute;
-        width: 360px;
-        height: 360px;
-        border-radius: 50%;
-        border: 2px solid rgba(255, 255, 255, 0.08);
-        top: -100px;
-        right: -90px;
-        pointer-events: none;
-    }
+  .container { max-width: 720px; margin: 0 auto; }
 
-    .app-card::after {
-        content: '';
-        position: absolute;
-        width: 220px;
-        height: 220px;
-        border-radius: 50%;
-        border: 2px solid rgba(255, 255, 255, 0.06);
-        bottom: -70px;
-        left: -50px;
-        pointer-events: none;
-    }
+  /* ── Header ── */
+  header {
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+  }
 
-    .app-card .inner-circle {
-        position: absolute;
-        width: 160px;
-        height: 160px;
-        border-radius: 50%;
-        border: 1.5px solid rgba(255, 255, 255, 0.07);
-        top: 24px;
-        right: 36px;
-        pointer-events: none;
-    }
+  h1 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
 
-    .app-card > * { position: relative; z-index: 1; }
+  .header-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
 
-    /* ── Header ── */
-    h1 {
-        color: #fff;
-        text-align: center;
-        margin: 0 0 6px 0;
-        font-size: 24px;
-        letter-spacing: -0.3px;
-    }
+  /* ── Related tool link ── */
+  .related-tool {
+    margin-top: -8px;
+    margin-bottom: 20px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
 
-    .subtitle {
-        text-align: center;
-        color: rgba(255, 255, 255, 0.65);
-        font-size: 14px;
-        margin-bottom: 24px;
-    }
+  .related-tool svg {
+    flex-shrink: 0;
+    color: var(--text-tertiary);
+  }
 
-    /* ── Picker ── */
-    .picker {
-        width: 500px;
-        text-align: center;
-        margin-bottom: 22px;
-    }
+  .related-tool a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+  }
 
-    .picker-prompt {
-        color: rgba(255, 255, 255, 0.85);
-        font-size: 14px;
-        margin-bottom: 14px;
-        line-height: 1.4;
-    }
+  .related-tool a:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
 
-    .picker-prompt code {
-        background: rgba(255, 255, 255, 0.15);
-        padding: 2px 7px;
-        border-radius: 5px;
-        font-family: 'SF Mono', Menlo, Consolas, monospace;
-        font-size: 12px;
-    }
+  /* ── Picker card ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
 
-    .btn-picker {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        background: rgba(255, 255, 255, 0.18);
-        color: #fff;
-        padding: 11px 22px;
-        border-radius: 50px;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        font-size: 14px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-        user-select: none;
-    }
+  .card-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-tertiary);
+    margin-bottom: 10px;
+  }
 
-    .btn-picker:hover {
-        background: rgba(255, 255, 255, 0.28);
-        border-color: rgba(255, 255, 255, 0.55);
-        transform: translateY(-1px);
-    }
+  .picker-prompt {
+    font-size: 14px;
+    color: var(--text);
+    margin-bottom: 14px;
+  }
 
-    .btn-picker:active { transform: translateY(0); }
+  .picker-prompt code {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
 
-    .btn-picker-icon { font-size: 16px; }
+  .picker-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
 
-    .picker-hint {
-        color: rgba(255, 255, 255, 0.5);
-        font-size: 12px;
-        margin-top: 10px;
-    }
+  .btn-picker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    color: var(--text);
+    padding: 10px 16px;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    user-select: none;
+  }
 
-    #folderInput { display: none; }
+  .btn-picker:hover {
+    background: var(--bg);
+    border-color: var(--text-tertiary);
+  }
 
-    /* ── Scan summary strip ── */
-    .scan-info {
-        width: 500px;
-        background: rgba(255, 255, 255, 0.13);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 12px;
-        padding: 12px 14px;
-        margin-bottom: 18px;
-        font-size: 12px;
-        color: rgba(255, 255, 255, 0.85);
-        display: none;
-    }
+  .btn-picker svg {
+    width: 14px;
+    height: 14px;
+  }
 
-    .scan-info.show { display: block; }
+  .picker-hint {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-tertiary);
+  }
 
-    .scan-info-label {
-        font-weight: bold;
-        color: rgba(255, 255, 255, 0.5);
-        margin-bottom: 4px;
-        font-size: 10px;
-        text-transform: uppercase;
-        letter-spacing: 0.9px;
-    }
+  #folderInput { display: none; }
 
-    .scan-info-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 2px 0;
-    }
+  /* ── Scan info ── */
+  .scan-info {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: none;
+  }
 
-    .scan-info-row span:first-child { color: rgba(255, 255, 255, 0.65); }
-    .scan-info-row span:last-child { font-family: 'SF Mono', Menlo, Consolas, monospace; }
+  .scan-info.show { display: block; }
 
-    /* ── Buttons ── */
-    .button-group {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-        width: 500px;
-    }
+  .scan-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
 
-    button {
-        padding: 13px 28px;
-        border-radius: 50px;
-        font-size: 14px;
-        font-weight: bold;
-        cursor: pointer;
-        border: 2px solid transparent;
-        transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-        font-family: inherit;
-    }
+  .scan-info-row span:last-child {
+    font-family: var(--mono);
+    color: var(--text);
+    font-size: 12px;
+  }
 
-    .btn-primary {
-        background: #fff;
-        color: #667eea;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
-    }
+  .scan-info-row.total {
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+    padding-top: 12px;
+    color: var(--text);
+    font-weight: 500;
+  }
 
-    .btn-primary::after { content: ' →'; }
+  .scan-info-row.total span:last-child {
+    font-weight: 600;
+  }
 
-    .btn-primary:hover:not(:disabled) {
-        transform: translateY(-2px) scale(1.02);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
-        background: #f5f6ff;
-    }
+  /* ── Action row ── */
+  .action-row {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
 
-    .btn-primary:active:not(:disabled) { transform: translateY(-1px) scale(1.01); }
+  button {
+    background: var(--text);
+    color: var(--surface);
+    border: 1px solid var(--text);
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+  }
 
-    .btn-primary:disabled {
-        background: rgba(255, 255, 255, 0.25);
-        color: rgba(255, 255, 255, 0.4);
-        cursor: not-allowed;
-        box-shadow: none;
-    }
+  button:hover:not(:disabled) {
+    background: #2d3441;
+    border-color: #2d3441;
+  }
 
-    .btn-primary:disabled::after { content: ''; }
+  button:active:not(:disabled) { transform: translateY(1px); }
 
-    .btn-secondary {
-        background: rgba(255, 255, 255, 0.15);
-        color: rgba(255, 255, 255, 0.85);
-        border-color: rgba(255, 255, 255, 0.3);
-    }
+  button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 
-    .btn-secondary:hover {
-        background: rgba(255, 255, 255, 0.25);
-        border-color: rgba(255, 255, 255, 0.5);
-        color: #fff;
-    }
+  button.secondary {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--border-strong);
+  }
 
-    /* ── Modal ── */
-    .modal-overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background-color: rgba(20, 10, 50, 0.55);
-        backdrop-filter: blur(4px);
-        z-index: 1000;
-        animation: fadeIn 0.2s ease-in;
-    }
+  button.secondary:hover:not(:disabled) {
+    background: var(--bg);
+    border-color: var(--text-tertiary);
+  }
 
-    .modal-overlay.show {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-    }
+  /* ── Modal ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 18, 27, 0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 1000;
+    animation: fadeIn 0.15s ease;
+  }
 
-    .modal-content {
-        background: #fff;
-        border-radius: 24px;
-        padding: 32px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
-        max-width: 520px;
-        width: 100%;
-        position: relative;
-        animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        overflow: hidden;
-    }
+  .modal-overlay.show { display: flex; }
 
-    .modal-content::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 6px;
-    }
+  .modal-content {
+    background: var(--surface);
+    border-radius: 10px;
+    max-width: 520px;
+    width: 100%;
+    padding: 28px;
+    position: relative;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+    animation: slideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
 
-    .modal-content.good::before { background: linear-gradient(90deg, #34d399, #10b981); }
-    .modal-content.bad::before  { background: linear-gradient(90deg, #f87171, #ef4444); }
+  .modal-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: transparent;
+    color: var(--text-tertiary);
+    border: none;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 20px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-    .modal-close {
-        position: absolute;
-        top: 14px;
-        right: 14px;
-        background: none;
-        border: none;
-        font-size: 24px;
-        color: #999;
-        cursor: pointer;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0;
-        transition: all 0.15s;
-    }
+  .modal-close:hover {
+    background: var(--bg);
+    color: var(--text);
+    border: none;
+  }
 
-    .modal-close:hover {
-        background: #f5f5f5;
-        color: #333;
-    }
+  .result-icon-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 4px 0 16px;
+  }
 
-    .result-icon {
-        font-size: 56px;
-        text-align: center;
-        margin: 8px 0 10px;
-        line-height: 1;
-    }
+  .result-title {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+  }
 
-    .result-title {
-        text-align: center;
-        font-size: 22px;
-        font-weight: bold;
-        margin-bottom: 8px;
-        letter-spacing: -0.3px;
-    }
+  .result-title.good { color: var(--success); }
+  .result-title.bad  { color: var(--danger); }
 
-    .result-title.good { color: #059669; }
-    .result-title.bad  { color: #dc2626; }
+  .result-sub {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 13px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
 
-    .result-sub {
-        text-align: center;
-        color: #555;
-        font-size: 14px;
-        margin-bottom: 22px;
-        line-height: 1.5;
-    }
+  .result-numbers {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    font-size: 13px;
+  }
 
-    .result-numbers {
-        background: #f5f6ff;
-        border-radius: 12px;
-        padding: 14px 18px;
-        margin-bottom: 18px;
-        font-size: 13px;
-    }
+  .result-numbers-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    color: var(--text-secondary);
+  }
 
-    .result-numbers-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 4px 0;
-        color: #02095D;
-    }
+  .result-numbers-row span:last-child {
+    font-family: var(--mono);
+    font-weight: 600;
+    color: var(--text);
+  }
 
-    .result-numbers-row span:last-child {
-        font-family: 'SF Mono', Menlo, Consolas, monospace;
-        font-weight: bold;
-    }
+  .fix-suggestion {
+    background: var(--warning-bg);
+    border: 1px solid var(--warning-border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-bottom: 18px;
+  }
 
-    .fix-suggestion {
-        background: #fffbeb;
-        border: 1px solid #fde68a;
-        border-radius: 12px;
-        padding: 14px 16px;
-        margin-bottom: 18px;
-        font-size: 13px;
-        color: #713f12;
-    }
+  .fix-suggestion-label {
+    font-weight: 600;
+    margin-bottom: 4px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #92400e;
+  }
 
-    .fix-suggestion-label {
-        font-weight: bold;
-        margin-bottom: 4px;
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.7px;
-        color: #92400e;
-    }
+  .fix-suggestion-value {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 600;
+  }
 
-    .fix-suggestion-value {
-        font-family: 'SF Mono', Menlo, Consolas, monospace;
-        font-size: 14px;
-        color: #02095D;
-    }
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
 
-    .modal-actions {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-    }
+  .error-message {
+    background: var(--danger-bg);
+    border: 1px solid var(--danger-border);
+    border-left: 3px solid var(--danger);
+    border-radius: 6px;
+    padding: 12px 14px;
+    color: #7f1d1d;
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 18px;
+  }
 
-    .btn-download {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: #fff;
-        padding: 13px 24px;
-        border-radius: 50px;
-        border: none;
-        font-weight: bold;
-        font-size: 14px;
-        cursor: pointer;
-        box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
-        transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-    }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
 
-    .btn-download:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.55);
-    }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
 
-    .btn-download::before { content: '⬇ '; }
-
-    .btn-muted {
-        background: #f5f5f5;
-        color: #666;
-        padding: 13px 24px;
-        border-radius: 50px;
-        border: none;
-        font-weight: bold;
-        font-size: 14px;
-        cursor: pointer;
-    }
-
-    .btn-muted:hover { background: #ebebeb; color: #333; }
-
-    .modal-content.error-state { padding-top: 24px; }
-
-    .error-message {
-        background: #fef2f2;
-        border-left: 3px solid #ef4444;
-        border-radius: 0 10px 10px 0;
-        padding: 12px 16px;
-        color: #991b1b;
-        font-size: 13px;
-        line-height: 1.5;
-        margin-bottom: 18px;
-    }
-
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes slideIn {
-        from { opacity: 0; transform: translateY(-20px) scale(0.96); }
-        to   { opacity: 1; transform: translateY(0) scale(1); }
-    }
-
-    /* ── Success check ── */
-    .result-check {
-        display: flex;
-        justify-content: center;
-        margin: 4px 0 14px;
-        animation: checkIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    @keyframes checkIn {
-        from { transform: scale(0.85); opacity: 0; }
-        to   { transform: scale(1); opacity: 1; }
-    }
-
-    /* ── Copyright ── */
-    .copyright {
-        text-align: center;
-        color: #aaa;
-        font-size: 12px;
-        margin-top: 16px;
-    }
+  @media (max-width: 640px) {
+    body { padding: 20px 16px 48px; }
+    header { flex-direction: column; align-items: flex-start; gap: 4px; }
+    .picker-row { flex-direction: column; align-items: flex-start; }
+    .modal-actions { flex-direction: column-reverse; }
+    .modal-actions button { width: 100%; }
+  }
 </style>
 </head>
 <body>
+  <div class="container">
+    <header>
+      <h1>DASH MPD Health Check</h1>
+      <span class="header-meta">Phantom segment detector</span>
+    </header>
 
-<div class="app-card">
-    <div class="inner-circle"></div>
+    <div class="related-tool">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polygon points="23 7 16 12 23 17 23 7"/>
+        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+      </svg>
+      <span>For previewing and testing already-live videos, use the <a href="#" target="_blank" rel="noopener">DSe Video Preview</a> tool.</span>
+    </div>
 
-    <h1>🩺 DASH MPD Health Check</h1>
-    <div class="subtitle">Catch phantom segments before they ship.</div>
-
-    <div class="picker">
-        <div class="picker-prompt" id="pickerPrompt">Choose the packaged folder containing <code>stream.mpd</code></div>
+    <div class="card">
+      <div class="card-label">Source folder</div>
+      <div class="picker-prompt" id="pickerPrompt">Choose the packaged folder containing <code>stream.mpd</code></div>
+      <div class="picker-row">
         <label class="btn-picker" for="folderInput">
-            <span class="btn-picker-icon">📁</span>
-            <span id="pickerBtnLabel">Select folder</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+          <span id="pickerBtnLabel">Select folder</span>
         </label>
-        <div class="picker-hint" id="pickerHint">e.g. desktop, desktop-V2</div>
-        <input type="file" id="folderInput" webkitdirectory directory multiple>
-    </div>
+        <span class="picker-hint" id="pickerHint">e.g. desktop, desktop-V2</span>
+        <input type="file" id="folderInput" webkitdirectory directory multiple />
+      </div>
 
-    <div class="scan-info" id="scanInfo">
-        <div class="scan-info-label">Scan Result</div>
+      <div class="scan-info" id="scanInfo">
+        <div class="card-label" style="margin-bottom: 8px;">Scan result</div>
         <div id="scanInfoBody"></div>
+      </div>
     </div>
 
-    <div class="button-group">
-        <button class="btn-primary" id="checkBtn" disabled>Run Health Check</button>
+    <div class="action-row">
+      <button class="" id="checkBtn" disabled>Run Health Check</button>
     </div>
-</div>
+  </div>
 
-<!-- Modal -->
-<div id="modalOverlay" class="modal-overlay">
+  <div id="modalOverlay" class="modal-overlay">
     <div class="modal-content" id="modalContent">
-        <button class="modal-close" id="modalClose" aria-label="Close">×</button>
-        <div id="modalBody"></div>
+      <button class="modal-close" id="modalClose" aria-label="Close">×</button>
+      <div id="modalBody"></div>
     </div>
-</div>
-
-<div class="copyright">♥ Maty 2026</div>
+  </div>
 
 <script>
-    // ────────────────────────────────────────────────────────────────────
-    // State
-    // ────────────────────────────────────────────────────────────────────
-    let scanned = null;  // { mpdFile, mpdText, renditions: [{name, segCount}], minSegCount, rootName }
+  // ────────────────────────────────────────────────────────────────────
+  // State
+  // ────────────────────────────────────────────────────────────────────
+  let scanned = null;  // { mpdFile, mpdText, renditions: [{name, segCount}], minSegCount, rootName }
 
-    // ────────────────────────────────────────────────────────────────────
-    // ISO 8601 duration — supports PT[n]H[n]M[n]S (full) and PT[n]S (simple)
-    // ────────────────────────────────────────────────────────────────────
-    function parseISODuration(duration) {
-        if (!duration) return null;
-        const m = duration.match(/^PT(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?$/);
-        if (!m) return null;
-        const h = parseFloat(m[1] || '0');
-        const mi = parseFloat(m[2] || '0');
-        const s = parseFloat(m[3] || '0');
-        return h * 3600 + mi * 60 + s;
+  // ────────────────────────────────────────────────────────────────────
+  // ISO 8601 duration — supports PT[n]H[n]M[n]S (full) and PT[n]S (simple)
+  // ────────────────────────────────────────────────────────────────────
+  function parseISODuration(duration) {
+    if (!duration) return null;
+    const m = duration.match(/^PT(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?$/);
+    if (!m) return null;
+    const h = parseFloat(m[1] || '0');
+    const mi = parseFloat(m[2] || '0');
+    const s = parseFloat(m[3] || '0');
+    return h * 3600 + mi * 60 + s;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // Folder scanning
+  // ────────────────────────────────────────────────────────────────────
+  function scanFiles(fileList) {
+    const files = Array.from(fileList);
+    if (!files.length) return { ok: false, error: 'No files selected.' };
+
+    const firstPath = files[0].webkitRelativePath || files[0].name;
+    const rootName = firstPath.split('/')[0] || 'folder';
+
+    const mpdFile = files.find(f => /\.mpd$/i.test(f.name));
+    if (!mpdFile) {
+      return { ok: false, error: `No .mpd file found in "${rootName}". Make sure you selected the folder containing the Bento4 output.` };
     }
 
-    // ────────────────────────────────────────────────────────────────────
-    // Folder scanning
-    // ────────────────────────────────────────────────────────────────────
-    function scanFiles(fileList) {
-        const files = Array.from(fileList);
-        if (!files.length) return { ok: false, error: 'No files selected.' };
+    const segPattern = /seg-(\d+)\.m4s$/i;
+    const byFolder = new Map();
 
-        // Pull root folder name from the first file's path
-        const firstPath = files[0].webkitRelativePath || files[0].name;
-        const rootName = firstPath.split('/')[0] || 'folder';
-
-        // Find the MPD file — first .mpd anywhere in the tree
-        const mpdFile = files.find(f => /\.mpd$/i.test(f.name));
-        if (!mpdFile) {
-            return { ok: false, error: `No .mpd file found in "${rootName}". Make sure you selected the folder containing the Bento4 output.` };
-        }
-
-        // Group seg-*.m4s files by their immediate parent folder
-        const segPattern = /seg-(\d+)\.m4s$/i;
-        const byFolder = new Map();
-
-        for (const f of files) {
-            const match = f.name.match(segPattern);
-            if (!match) continue;
-            const parts = (f.webkitRelativePath || '').split('/');
-            // parent folder = everything except the filename (last part)
-            const parent = parts.slice(0, -1).join('/') || '(root)';
-            const num = parseInt(match[1], 10);
-            if (!byFolder.has(parent)) byFolder.set(parent, { name: parent, max: 0, count: 0 });
-            const entry = byFolder.get(parent);
-            entry.max = Math.max(entry.max, num);
-            entry.count += 1;
-        }
-
-        if (byFolder.size === 0) {
-            return { ok: false, error: `No seg-*.m4s segment files found under "${rootName}".` };
-        }
-
-        // Each rendition's segCount = highest segN (treating it as "last segment number")
-        const renditions = Array.from(byFolder.values()).map(r => ({
-            name: r.name.split('/').slice(1).join('/') || r.name,  // strip root prefix for display
-            segCount: r.max
-        })).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-
-        const minSegCount = Math.min(...renditions.map(r => r.segCount));
-
-        return { ok: true, mpdFile, renditions, minSegCount, rootName };
+    for (const f of files) {
+      const match = f.name.match(segPattern);
+      if (!match) continue;
+      const parts = (f.webkitRelativePath || '').split('/');
+      const parent = parts.slice(0, -1).join('/') || '(root)';
+      const num = parseInt(match[1], 10);
+      if (!byFolder.has(parent)) byFolder.set(parent, { name: parent, max: 0, count: 0 });
+      const entry = byFolder.get(parent);
+      entry.max = Math.max(entry.max, num);
+      entry.count += 1;
     }
 
-    async function readFileText(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = () => reject(reader.error);
-            reader.readAsText(file);
-        });
+    if (byFolder.size === 0) {
+      return { ok: false, error: `No seg-*.m4s segment files found under "${rootName}".` };
     }
 
-    // ────────────────────────────────────────────────────────────────────
-    // Validation math — matches the original logic
-    // ────────────────────────────────────────────────────────────────────
-    function validate(mpdText, actualSegments) {
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(mpdText, 'application/xml');
+    const renditions = Array.from(byFolder.values()).map(r => ({
+      name: r.name.split('/').slice(1).join('/') || r.name,
+      segCount: r.max
+    })).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 
-        const parseError = xmlDoc.getElementsByTagName('parsererror')[0];
-        if (parseError) throw new Error('MPD file is not valid XML.');
+    const minSegCount = Math.min(...renditions.map(r => r.segCount));
 
-        const mpd = xmlDoc.getElementsByTagName('MPD')[0];
-        const segmentTemplate = xmlDoc.getElementsByTagName('SegmentTemplate')[0];
-        if (!mpd) throw new Error('No <MPD> element found.');
-        if (!segmentTemplate) throw new Error('No <SegmentTemplate> element found.');
+    return { ok: true, mpdFile, renditions, minSegCount, rootName };
+  }
 
-        const mpdDurAttr = mpd.getAttribute('mediaPresentationDuration');
-        const presentationDuration = parseISODuration(mpdDurAttr);
-        const timescale = parseInt(segmentTemplate.getAttribute('timescale'), 10);
-        const segmentDuration = parseInt(segmentTemplate.getAttribute('duration'), 10);
-        const startNumber = parseInt(segmentTemplate.getAttribute('startNumber') || '1', 10);
-
-        if (presentationDuration == null) throw new Error(`Could not parse mediaPresentationDuration ("${mpdDurAttr}").`);
-        if (!timescale || !segmentDuration) throw new Error('SegmentTemplate is missing timescale or duration.');
-
-        const expectedSegments = startNumber - 1 + Math.ceil((presentationDuration * timescale) / segmentDuration);
-        const safeDuration = actualSegments * (segmentDuration / timescale);
-        const safeDurationBuffered = safeDuration - 0.001;
-
-        return {
-            expectedSegments,
-            actualSegments,
-            presentationDuration,
-            timescale,
-            segmentDuration,
-            startNumber,
-            isHealthy: actualSegments >= expectedSegments,
-            safeDurationBuffered,
-            originalMpdDurAttr: mpdDurAttr
-        };
-    }
-
-    // ────────────────────────────────────────────────────────────────────
-    // Build a fixed MPD — only rewrites mediaPresentationDuration
-    // ────────────────────────────────────────────────────────────────────
-    function buildFixedMpd(mpdText, originalAttrValue, newSeconds) {
-        const newAttrValue = `PT${newSeconds.toFixed(3)}S`;
-        // Replace the exact mediaPresentationDuration attribute (value-agnostic).
-        // We target: mediaPresentationDuration="..."  (single or double quotes)
-        const re = /mediaPresentationDuration\s*=\s*(["'])([^"']*)\1/;
-        return mpdText.replace(re, `mediaPresentationDuration="${newAttrValue}"`);
-    }
-
-    function downloadText(filename, text) {
-        const blob = new Blob([text], { type: 'application/dash+xml' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-    }
-
-    // ────────────────────────────────────────────────────────────────────
-    // UI helpers
-    // ────────────────────────────────────────────────────────────────────
-    const $ = id => document.getElementById(id);
-
-    function renderScanInfo(result) {
-        const box = $('scanInfo');
-        const body = $('scanInfoBody');
-        const renditionsHtml = result.renditions.map(r =>
-            `<div class="scan-info-row"><span>Rendition "${escapeHtml(r.name)}"</span><span>${r.segCount} segs</span></div>`
-        ).join('');
-        body.innerHTML = `
-            <div class="scan-info-row"><span>Root</span><span>${escapeHtml(result.rootName)}</span></div>
-            <div class="scan-info-row"><span>MPD</span><span>${escapeHtml(result.mpdFile.name)}</span></div>
-            ${renditionsHtml}
-            <div class="scan-info-row" style="border-top:1px solid rgba(255,255,255,0.2);margin-top:6px;padding-top:8px;">
-                <span><strong>Safest count (using lowest)</strong></span><span><strong>${result.minSegCount}</strong></span>
-            </div>
-        `;
-        box.classList.add('show');
-    }
-
-    function escapeHtml(s) {
-        return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
-    }
-
-    function showModal(html, variant) {
-        const overlay = $('modalOverlay');
-        const content = $('modalContent');
-        content.className = 'modal-content ' + (variant || '');
-        $('modalBody').innerHTML = html;
-        overlay.classList.add('show');
-    }
-
-    function closeModal() { $('modalOverlay').classList.remove('show'); }
-
-    function renderHealthy() {
-        showModal(`
-            <div class="result-check">
-                <svg viewBox="0 0 64 64" width="64" height="64" aria-hidden="true">
-                    <circle cx="32" cy="32" r="28" fill="#d1fae5"/>
-                    <circle cx="32" cy="32" r="28" fill="none" stroke="#10b981" stroke-width="2" opacity="0.4"/>
-                    <path d="M20 33 L28 41 L44 24" fill="none" stroke="#059669" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </div>
-            <div class="result-title good">All good</div>
-            <div class="result-sub">The MPD and your segments are in sync.<br>No phantom segments detected.</div>
-            <div class="modal-actions">
-                <button class="btn-muted" onclick="closeModal()">Close</button>
-            </div>
-        `, 'good');
-    }
-
-    function renderUnhealthy(v, mpdText, mpdFileName) {
-        const safeDurStr = `PT${v.safeDurationBuffered.toFixed(3)}S`;
-        showModal(`
-            <div class="result-icon">⚠️</div>
-            <div class="result-title bad">Phantom segment detected</div>
-            <div class="result-sub">The MPD declares more duration than your segments cover.<br>Players may stall or error at the tail of playback.</div>
-
-            <div class="result-numbers">
-                <div class="result-numbers-row"><span>Expected segments</span><span>${v.expectedSegments}</span></div>
-                <div class="result-numbers-row"><span>Actual segments</span><span>${v.actualSegments}</span></div>
-                <div class="result-numbers-row"><span>Shortfall</span><span>${v.expectedSegments - v.actualSegments}</span></div>
-                <div class="result-numbers-row"><span>Current duration</span><span>${v.originalMpdDurAttr}</span></div>
-            </div>
-
-            <div class="fix-suggestion">
-                <div class="fix-suggestion-label">Recommended mediaPresentationDuration</div>
-                <div class="fix-suggestion-value">${safeDurStr}</div>
-            </div>
-
-            <div class="modal-actions">
-                <button class="btn-muted" onclick="closeModal()">Close</button>
-                <button class="btn-download" id="downloadFixBtn">Download fixed MPD</button>
-            </div>
-        `, 'bad');
-
-        $('downloadFixBtn').addEventListener('click', () => {
-            const fixed = buildFixedMpd(mpdText, v.originalMpdDurAttr, v.safeDurationBuffered);
-            downloadText(mpdFileName, fixed);
-        });
-    }
-
-    function renderError(msg) {
-        showModal(`
-            <div class="result-icon">❌</div>
-            <div class="result-title bad">Couldn't check</div>
-            <div class="error-message">${escapeHtml(msg)}</div>
-            <div class="modal-actions">
-                <button class="btn-muted" onclick="closeModal()">Close</button>
-            </div>
-        `, 'bad');
-    }
-
-    // ────────────────────────────────────────────────────────────────────
-    // Event wiring
-    // ────────────────────────────────────────────────────────────────────
-    const folderInput = $('folderInput');
-    const checkBtn = $('checkBtn');
-
-    async function handleFiles(fileList) {
-        // User cancelled the picker — don't error, just do nothing.
-        if (!fileList || fileList.length === 0) return;
-
-        const result = scanFiles(fileList);
-        if (!result.ok) {
-            scanned = null;
-            checkBtn.disabled = true;
-            $('scanInfo').classList.remove('show');
-            renderError(result.error);
-            return;
-        }
-        try {
-            const mpdText = await readFileText(result.mpdFile);
-            scanned = { ...result, mpdText };
-            renderScanInfo(result);
-            checkBtn.disabled = false;
-            $('pickerBtnLabel').textContent = 'Change folder';
-            $('pickerHint').textContent = `Loaded: ${result.rootName}`;
-        } catch (e) {
-            scanned = null;
-            checkBtn.disabled = true;
-            renderError('Failed to read MPD file: ' + e.message);
-        }
-    }
-
-    folderInput.addEventListener('change', e => handleFiles(e.target.files));
-
-    checkBtn.addEventListener('click', () => {
-        if (!scanned) return;
-        try {
-            const v = validate(scanned.mpdText, scanned.minSegCount);
-            if (v.isHealthy) {
-                renderHealthy();
-            } else {
-                renderUnhealthy(v, scanned.mpdText, scanned.mpdFile.name);
-            }
-        } catch (e) {
-            renderError(e.message);
-        }
+  async function readFileText(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsText(file);
     });
+  }
 
-    $('modalClose').addEventListener('click', closeModal);
-    $('modalOverlay').addEventListener('click', e => {
-        if (e.target.id === 'modalOverlay') closeModal();
-    });
+  // ────────────────────────────────────────────────────────────────────
+  // Validation math
+  // ────────────────────────────────────────────────────────────────────
+  function validate(mpdText, actualSegments) {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(mpdText, 'application/xml');
 
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') closeModal();
+    const parseError = xmlDoc.getElementsByTagName('parsererror')[0];
+    if (parseError) throw new Error('MPD file is not valid XML.');
+
+    const mpd = xmlDoc.getElementsByTagName('MPD')[0];
+    const segmentTemplate = xmlDoc.getElementsByTagName('SegmentTemplate')[0];
+    if (!mpd) throw new Error('No <MPD> element found.');
+    if (!segmentTemplate) throw new Error('No <SegmentTemplate> element found.');
+
+    const mpdDurAttr = mpd.getAttribute('mediaPresentationDuration');
+    const presentationDuration = parseISODuration(mpdDurAttr);
+    const timescale = parseInt(segmentTemplate.getAttribute('timescale'), 10);
+    const segmentDuration = parseInt(segmentTemplate.getAttribute('duration'), 10);
+    const startNumber = parseInt(segmentTemplate.getAttribute('startNumber') || '1', 10);
+
+    if (presentationDuration == null) throw new Error(`Could not parse mediaPresentationDuration ("${mpdDurAttr}").`);
+    if (!timescale || !segmentDuration) throw new Error('SegmentTemplate is missing timescale or duration.');
+
+    const expectedSegments = startNumber - 1 + Math.ceil((presentationDuration * timescale) / segmentDuration);
+    const safeDuration = actualSegments * (segmentDuration / timescale);
+    const safeDurationBuffered = safeDuration - 0.001;
+
+    return {
+      expectedSegments,
+      actualSegments,
+      presentationDuration,
+      timescale,
+      segmentDuration,
+      startNumber,
+      isHealthy: actualSegments >= expectedSegments,
+      safeDurationBuffered,
+      originalMpdDurAttr: mpdDurAttr
+    };
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // Build a fixed MPD — only rewrites mediaPresentationDuration
+  // ────────────────────────────────────────────────────────────────────
+  function buildFixedMpd(mpdText, originalAttrValue, newSeconds) {
+    const newAttrValue = `PT${newSeconds.toFixed(3)}S`;
+    const re = /mediaPresentationDuration\s*=\s*(["'])([^"']*)\1/;
+    return mpdText.replace(re, `mediaPresentationDuration="${newAttrValue}"`);
+  }
+
+  function downloadText(filename, text) {
+    const blob = new Blob([text], { type: 'application/dash+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // UI helpers
+  // ────────────────────────────────────────────────────────────────────
+  const $ = id => document.getElementById(id);
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  }
+
+  function renderScanInfo(result) {
+    const box = $('scanInfo');
+    const body = $('scanInfoBody');
+    const renditionsHtml = result.renditions.map(r =>
+      `<div class="scan-info-row"><span>Rendition <code style="font-family:var(--mono);font-size:12px;">${escapeHtml(r.name)}</code></span><span>${r.segCount} segs</span></div>`
+    ).join('');
+    body.innerHTML = `
+      <div class="scan-info-row"><span>Root</span><span>${escapeHtml(result.rootName)}</span></div>
+      <div class="scan-info-row"><span>MPD</span><span>${escapeHtml(result.mpdFile.name)}</span></div>
+      ${renditionsHtml}
+      <div class="scan-info-row total"><span>Safest count (using lowest)</span><span>${result.minSegCount}</span></div>
+    `;
+    box.classList.add('show');
+  }
+
+  function showModal(html) {
+    $('modalBody').innerHTML = html;
+    $('modalOverlay').classList.add('show');
+  }
+
+  function closeModal() { $('modalOverlay').classList.remove('show'); }
+
+  function renderHealthy() {
+    showModal(`
+      <div class="result-icon-wrap">
+        <svg viewBox="0 0 64 64" width="56" height="56" aria-hidden="true">
+          <circle cx="32" cy="32" r="28" fill="#ecfdf5" stroke="#a7f3d0" stroke-width="2"/>
+          <path d="M20 33 L28 41 L44 24" fill="none" stroke="#059669" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="result-title good">All good</div>
+      <div class="result-sub">The MPD and your segments are in sync.<br>No phantom segments detected.</div>
+      <div class="modal-actions">
+        <button class="secondary" onclick="closeModal()">Close</button>
+      </div>
+    `);
+  }
+
+  function renderUnhealthy(v, mpdText, mpdFileName) {
+    const safeDurStr = `PT${v.safeDurationBuffered.toFixed(3)}S`;
+    showModal(`
+      <div class="result-icon-wrap">
+        <svg viewBox="0 0 64 64" width="56" height="56" aria-hidden="true">
+          <circle cx="32" cy="32" r="28" fill="#fef2f2" stroke="#fecaca" stroke-width="2"/>
+          <line x1="32" y1="22" x2="32" y2="36" stroke="#dc2626" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="32" cy="44" r="2.5" fill="#dc2626"/>
+        </svg>
+      </div>
+      <div class="result-title bad">Phantom segment detected</div>
+      <div class="result-sub">The MPD declares more duration than your segments cover.<br>Players may stall or error at the tail of playback.</div>
+
+      <div class="result-numbers">
+        <div class="result-numbers-row"><span>Expected segments</span><span>${v.expectedSegments}</span></div>
+        <div class="result-numbers-row"><span>Actual segments</span><span>${v.actualSegments}</span></div>
+        <div class="result-numbers-row"><span>Shortfall</span><span>${v.expectedSegments - v.actualSegments}</span></div>
+        <div class="result-numbers-row"><span>Current duration</span><span>${v.originalMpdDurAttr}</span></div>
+      </div>
+
+      <div class="fix-suggestion">
+        <div class="fix-suggestion-label">Recommended mediaPresentationDuration</div>
+        <div class="fix-suggestion-value">${safeDurStr}</div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="secondary" onclick="closeModal()">Close</button>
+        <button id="downloadFixBtn">Download fixed MPD</button>
+      </div>
+    `);
+
+    $('downloadFixBtn').addEventListener('click', () => {
+      const fixed = buildFixedMpd(mpdText, v.originalMpdDurAttr, v.safeDurationBuffered);
+      downloadText(mpdFileName, fixed);
     });
+  }
+
+  function renderError(msg) {
+    showModal(`
+      <div class="result-icon-wrap">
+        <svg viewBox="0 0 64 64" width="56" height="56" aria-hidden="true">
+          <circle cx="32" cy="32" r="28" fill="#fef2f2" stroke="#fecaca" stroke-width="2"/>
+          <line x1="24" y1="24" x2="40" y2="40" stroke="#dc2626" stroke-width="4" stroke-linecap="round"/>
+          <line x1="40" y1="24" x2="24" y2="40" stroke="#dc2626" stroke-width="4" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="result-title bad">Couldn't check</div>
+      <div class="error-message">${escapeHtml(msg)}</div>
+      <div class="modal-actions">
+        <button class="secondary" onclick="closeModal()">Close</button>
+      </div>
+    `);
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // Event wiring
+  // ────────────────────────────────────────────────────────────────────
+  const folderInput = $('folderInput');
+  const checkBtn = $('checkBtn');
+
+  async function handleFiles(fileList) {
+    if (!fileList || fileList.length === 0) return;
+
+    const result = scanFiles(fileList);
+    if (!result.ok) {
+      scanned = null;
+      checkBtn.disabled = true;
+      $('scanInfo').classList.remove('show');
+      renderError(result.error);
+      return;
+    }
+    try {
+      const mpdText = await readFileText(result.mpdFile);
+      scanned = { ...result, mpdText };
+      renderScanInfo(result);
+      checkBtn.disabled = false;
+      $('pickerBtnLabel').textContent = 'Change folder';
+      $('pickerHint').textContent = `Loaded: ${result.rootName}`;
+    } catch (e) {
+      scanned = null;
+      checkBtn.disabled = true;
+      renderError('Failed to read MPD file: ' + e.message);
+    }
+  }
+
+  folderInput.addEventListener('change', e => handleFiles(e.target.files));
+
+  checkBtn.addEventListener('click', () => {
+    if (!scanned) return;
+    try {
+      const v = validate(scanned.mpdText, scanned.minSegCount);
+      if (v.isHealthy) {
+        renderHealthy();
+      } else {
+        renderUnhealthy(v, scanned.mpdText, scanned.mpdFile.name);
+      }
+    } catch (e) {
+      renderError(e.message);
+    }
+  });
+
+  $('modalClose').addEventListener('click', closeModal);
+  $('modalOverlay').addEventListener('click', e => {
+    if (e.target.id === 'modalOverlay') closeModal();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+  });
 </script>
-
 </body>
 </html>
